@@ -5,12 +5,24 @@ Endpoint public, sans clé API.
 """
 
 import logging
+import unicodedata
 import httpx
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
 from utils.rate_limiter import RateLimiter
+import config
 
 logger = logging.getLogger(__name__)
+
+
+def _normaliser_texte(texte: str) -> str:
+    """
+    Convertit en minuscules et supprime les accents pour une comparaison robuste.
+    """
+    if not texte:
+        return ""
+    nfkd_form = unicodedata.normalize('NFKD', texte.lower())
+    return "".join([c for c in nfkd_form if not unicodedata.combining(c)])
 
 BASE_URL = "https://recherche-entreprises.api.gouv.fr/search"
 
@@ -144,6 +156,15 @@ def parse_entreprise(raw: dict, categories_exclues: set[str] | None = None) -> d
     siren = raw.get("siren", "")
     if not siren or len(siren) != 9:
         return None
+
+    # Filtrer par mots-clés d'exclusion dans le nom (Avatar Client / ICP)
+    nom = raw.get("nom_complet", "").strip()
+    nom_normalise = _normaliser_texte(nom)
+    for kw in config.EXCLUDED_KEYWORDS:
+        kw_normalise = _normaliser_texte(kw)
+        if kw_normalise in nom_normalise:
+            logger.debug(f"Lead '{nom}' filtré par mot-clé d'exclusion ICP ('{kw}').")
+            return None
 
     # Extraire le dirigeant principal
     dirigeants = raw.get("dirigeants", [])

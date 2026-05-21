@@ -47,9 +47,8 @@ PROMPTS_DIR.mkdir(exist_ok=True)
 
 # ── Codes NAF BTP (41xx, 42xx, 43xx) ────────────────────────────
 NAF_CODES = [
-    # 41 — Promotion immobilière & Construction de bâtiments
-    "41.10A", "41.10B", "41.10C", "41.10D",
-    "41.20A", "41.20B",
+    # 41 — Promotion immobilière & Maisons Individuelles EXCLUS, on ne garde que le gros œuvre
+    "41.20B",
     # 42 — Génie civil
     "42.11Z", "42.12Z", "42.13A", "42.13B",
     "42.21Z", "42.22Z", "42.91Z", "42.99Z",
@@ -85,6 +84,21 @@ REGIONS = [
 # PME = PME, ETI = ETI
 # On inclut toutes les catégories sauf GE (Grandes Entreprises)
 CATEGORIES_EXCLUES = {"GE"}
+
+# ── Mots-clés d'exclusion pour affiner l'Avatar Client (ICP) ──────
+# Rejette les promoteurs, SCI, commerces, négociants, agences de design, etc.
+EXCLUDED_KEYWORDS = [
+    # Promotion, Immobilier & SCI
+    "promotion", "promoteur", "immo", "immobilier", "immobiliere", "fonciere", "patrimoine", "lotissement", "amenageur", "sci",
+    # Architecture, Décoration & Diagnostic
+    "architecte", "architecture", "decoration", "decorateur", "interieur", "cuisine", "diagnostic",
+    # Commerce, Négoce, Matériaux, Outillage & Location B2B/B2C
+    "outillage", "magasin", "negoce", "quincaillerie", "distribution", "materiel", "materiaux", "vente", "boutique", "supermarche", "commerce", "location",
+    # Maisons individuelles (B2C direct)
+    "maison individuelle", "maisons individuelles", "villa", "pavillon",
+    # Holdings & Financier
+    "holding", "groupe", "finance", "invest", "investissement", "capital", "conseil", "consulting"
+]
 
 # ── Rate Limits ──────────────────────────────────────────────────
 RATE_LIMITS = {
