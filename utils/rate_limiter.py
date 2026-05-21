@@ -77,11 +77,11 @@ class RateLimiter:
                 )
 
     def on_success(self) -> None:
-        """Réduit le délai après un succès (retour au min_delay)."""
+        """Réinitialise immédiatement le délai après un succès pour reprendre à pleine vitesse."""
         with self._lock:
             if self._current_delay > self.min_delay:
-                self._current_delay = max(self.min_delay, self._current_delay / 2)
-                logger.debug(f"[{self.name}] Backoff réduit: {self._current_delay:.2f}s")
+                self._current_delay = self.min_delay
+                logger.debug(f"[{self.name}] Backoff réinitialisé au minimum: {self._current_delay:.2f}s")
 
     def on_rate_limit(self) -> None:
         """Double le délai après un 429 (backoff exponentiel, plafonné à 60s)."""

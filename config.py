@@ -127,7 +127,7 @@ CSV_COLUMNS = [
 ]
 
 # ── Modèle LLM (Gemini) ──────────────────────────────────────
-GEMINI_MODEL = "gemini-2.5-flash"
+GEMINI_MODEL = "gemini-flash-latest"
 LLM_MAX_TOKENS = 4096
 
 # ── Logging ──────────────────────────────────────────────────────

@@ -46,7 +46,7 @@ def scrape_website_markdown(
         "url": url,
         "formats": ["markdown"],
         "onlyMainContent": False,
-        "waitFor": 3000,
+        "waitFor": 1000,
     }
 
     try:

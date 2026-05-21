@@ -207,37 +207,47 @@ def run_pipeline(args: argparse.Namespace) -> None:
 
         logger.info(f"── Batch {batch_num}/{total_batches} ({len(batch)} leads) ──")
 
-        with httpx.Client() as http_client:
-            for lead in batch:
-                siren = lead["siren"]
-                nom = lead["nom"]
+        # Définition de la fonction d'enrichissement d'un lead (fermeture)
+        def enrich_single_lead(lead_item: dict, client_http: httpx.Client) -> None:
+            siren_val = lead_item["siren"]
+            nom_val = lead_item["nom"]
 
-                # Skip si déjà traité
-                if siren in processed_sirens:
-                    continue
+            if siren_val in processed_sirens:
+                return
 
-                # BOAMP : recherche activité marchés publics
+            # BOAMP : recherche activité marchés publics
+            try:
+                lead_item["activite_boamp"] = fetch_activite_boamp(
+                    client_http, rl_boamp, nom_val,
+                    months_lookback=config.BOAMP_MONTHS_LOOKBACK,
+                )
+            except Exception as exc:
+                logger.warning(f"BOAMP échoué pour {nom_val}: {exc}")
+                lead_item["activite_boamp"] = "Aucune activité détectée"
+
+            # Recherche du site web
+            lead_item["site_web"] = find_company_website(nom_val)
+            lead_item["site_markdown"] = ""
+
+            if not args.dry_run and config.FIRECRAWL_API_KEY and lead_item.get("site_web"):
                 try:
-                    lead["activite_boamp"] = fetch_activite_boamp(
-                        http_client, rl_boamp, nom,
-                        months_lookback=config.BOAMP_MONTHS_LOOKBACK,
+                    lead_item["site_markdown"] = scrape_website_markdown(
+                        client_http, rl_firecrawl,
+                        config.FIRECRAWL_API_KEY, lead_item["site_web"],
                     )
-                except Exception as e:
-                    logger.warning(f"BOAMP échoué pour {nom}: {e}")
-                    lead["activite_boamp"] = "Aucune activité détectée"
+                except Exception as exc:
+                    logger.warning(f"Firecrawl échoué pour {nom_val}: {exc}")
 
-                # Recherche du site web via DuckDuckGo (Gratuit)
-                lead["site_web"] = find_company_website(nom)
-                lead["site_markdown"] = ""
-
-                if not args.dry_run and config.FIRECRAWL_API_KEY and lead.get("site_web"):
+        with httpx.Client() as http_client:
+            from concurrent.futures import ThreadPoolExecutor
+            logger.info(f"Enrichissement parallèle de {len(batch)} leads...")
+            with ThreadPoolExecutor(max_workers=min(len(batch), 10)) as executor:
+                futures = [executor.submit(enrich_single_lead, lead, http_client) for lead in batch]
+                for future in futures:
                     try:
-                        lead["site_markdown"] = scrape_website_markdown(
-                            http_client, rl_firecrawl,
-                            config.FIRECRAWL_API_KEY, lead["site_web"],
-                        )
-                    except Exception as e:
-                        logger.warning(f"Firecrawl échoué pour {nom}: {e}")
+                        future.result()
+                    except Exception as pool_err:
+                        logger.error(f"Erreur d'enrichissement parallèle dans le pool : {pool_err}")
 
         # ── COUCHE 3 : Intelligence (Gemini 2.5 Pro) ──────────────────
         if not args.dry_run and llm_client:
