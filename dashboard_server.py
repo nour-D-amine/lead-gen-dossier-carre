@@ -46,11 +46,11 @@ def run_pipeline_task():
         python_exe = get_python_executable()
         main_script = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'main.py')
         
-        logger.info(f"Lancement de la commande : {python_exe} {main_script} --batch-size 5")
+        logger.info(f"Lancement de la commande : {python_exe} {main_script} --batch-size 5 --max-leads 5")
         pipeline_status = "Démarrage du pipeline d'enrichissement..."
         
         process = subprocess.Popen(
-            [python_exe, main_script, "--batch-size", "5"],
+            [python_exe, main_script, "--batch-size", "5", "--max-leads", "5"],
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
