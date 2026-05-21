@@ -22,6 +22,18 @@ PROMPTS_DIR = PROJECT_ROOT / "prompts"
 
 # ── Google Sheets ──────────────────────────────────────────────────
 GOOGLE_CREDENTIALS_PATH = os.path.join(PROJECT_ROOT, "credentials.json")
+
+# En production (ex: Railway), si le fichier n'existe pas mais la variable d'env est fournie, on le crée à la volée
+GOOGLE_CREDS_JSON = os.getenv("GOOGLE_CREDS_JSON", "")
+if GOOGLE_CREDS_JSON and not os.path.exists(GOOGLE_CREDENTIALS_PATH):
+    try:
+        import json
+        creds_dict = json.loads(GOOGLE_CREDS_JSON)
+        with open(GOOGLE_CREDENTIALS_PATH, "w", encoding="utf-8") as f:
+            json.dump(creds_dict, f, indent=2)
+    except Exception as e:
+        print(f"Erreur d'écriture de credentials.json depuis la variable d'environnement : {e}")
+
 GOOGLE_SHEET_NAME = "CRM Dossier Carré"
 
 CSV_PATH = DATA_DIR / "leads_btp.csv"
