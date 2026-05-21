@@ -73,6 +73,12 @@ def _build_user_message(lead: dict) -> str:
     site_md = lead.get("site_markdown", "")
     emails_extraits = extract_emails(site_md)
     
+    # Fallback si aucun email trouvé dans le site web gratté
+    if not emails_extraits:
+        from utils.web_search import search_company_email
+        logger.info(f"Aucun email trouvé via Firecrawl pour '{lead.get('nom', '?')}'. Lancement du fallback de recherche d'email...")
+        emails_extraits = search_company_email(lead.get("nom", ""))
+        
     context = {
         "siren": lead.get("siren", ""),
         "nom": lead.get("nom", ""),
@@ -134,11 +140,15 @@ def analyze_and_draft(
             contact = ""
             logger.warning(f"Gemini: réponse non-JSON pour {lead.get('siren', '?')}")
 
-        # Repli de sécurité en Python : si aucun email n'a été retenu par le LLM mais qu'on en a extraits via regex
-        emails_extraits = extract_emails(lead.get("site_markdown", ""))
-        if not contact and emails_extraits:
-            contact = emails_extraits[0]
-            logger.info(f"Repli sécurité Python : Email {contact} extrait par regex associé au lead {lead.get('nom', '?')}.")
+        # Repli de sécurité en Python : si aucun email n'a été retenu par le LLM
+        if not contact:
+            emails_extraits = extract_emails(lead.get("site_markdown", ""))
+            if not emails_extraits:
+                from utils.web_search import search_company_email
+                emails_extraits = search_company_email(lead.get("nom", ""))
+            if emails_extraits:
+                contact = emails_extraits[0]
+                logger.info(f"Repli sécurité Python : Email {contact} extrait associé au lead {lead.get('nom', '?')}.")
 
         logger.debug(f"Gemini: analyse terminée pour {lead.get('nom', '?')}")
         return analyse, email, contact

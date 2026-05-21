@@ -82,8 +82,8 @@ REGIONS = [
 # ── Catégories d'entreprise ciblées ──────────────────────────────
 # TPE = pas de catégorie spécifique dans l'API (effectif < 10)
 # PME = PME, ETI = ETI
-# On inclut toutes les catégories sauf GE (Grandes Entreprises)
-CATEGORIES_EXCLUES = {"GE"}
+# On inclut toutes les catégories sauf GE (Grandes Entreprises) et ETI (Entreprises de Taille Intermédiaire)
+CATEGORIES_EXCLUES = {"GE", "ETI"}
 
 # ── Mots-clés d'exclusion pour affiner l'Avatar Client (ICP) ──────
 # Rejette les promoteurs, SCI, commerces, négociants, agences de design, etc.

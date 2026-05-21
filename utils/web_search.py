@@ -133,3 +133,40 @@ def find_company_website(company_name: str) -> str:
     except Exception as e:
         logger.warning(f"Erreur DuckDuckGo pour {company_name}: {e}")
         return ""
+
+
+def search_company_email(company_name: str) -> list[str]:
+    """
+    Recherche l'email de l'entreprise via une recherche web ciblée.
+    Extrait les emails des snippets des résultats de recherche DuckDuckGo.
+    """
+    if not company_name:
+        return []
+        
+    cleaned_name = clean_company_name(company_name)
+    query = f'"{cleaned_name}" BTP (email OR contact OR "@")'
+    logger.info(f"Recherche d'email web ciblée pour: '{query}'")
+    emails = []
+    
+    try:
+        results = DDGS().text(query, region='fr-fr', max_results=8)
+        for res in results:
+            text = f"{res.get('title', '')} {res.get('body', '')}"
+            # Extraction par regex
+            found = re.findall(r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}', text)
+            for email in found:
+                email_lower = email.lower().strip()
+                # Nettoyage ponctuation de fin
+                while email_lower and email_lower[-1] in ['.', ',', ';', ':', '!', '?']:
+                    email_lower = email_lower[:-1]
+                if "@" in email_lower and email_lower not in emails:
+                    # Écarter les faux positifs évidents
+                    if not any(dummy in email_lower for dummy in ["sentry.io", "wix.com", "example.com", "bootstrap", "wixpress", "schema.org", "png", "jpg", "jpeg", "gif", "svg"]):
+                        emails.append(email_lower)
+        if emails:
+            logger.info(f"Emails trouvés via recherche web pour {cleaned_name}: {emails}")
+    except Exception as e:
+        logger.warning(f"Erreur DDG lors de la recherche d'email pour {company_name}: {e}")
+        
+    return emails
+
