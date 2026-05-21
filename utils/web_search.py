@@ -1,15 +1,30 @@
 import logging
 import re
+import httpx
 from duckduckgo_search import DDGS
 from urllib.parse import urlparse
+import config
 
 logger = logging.getLogger(__name__)
 
 EXCLUDED_DOMAINS = [
+    # Annuaires administratifs et d'entreprises
     "pappers.fr", "societe.com", "pagesjaunes.fr", "annuaire-entreprises.data.gouv.fr",
-    "linkedin.com", "facebook.com", "instagram.com", "kompass.com", "mappy.com",
-    "verif.com", "infonet.fr", "rubypayeur.com", "societeinfo.com", "manageo.fr",
-    "actu.fr", "ouest-france.fr", "lefigaro.fr", "lemonde.fr", "wikipedia.org"
+    "kompass.com", "mappy.com", "verif.com", "infonet.fr", "rubypayeur.com",
+    "societeinfo.com", "manageo.fr", "infogreffe.fr", "bodacc.fr", "societe.ninja",
+    "lecese.fr", "service-public.fr", "economie.gouv.fr", "entreprendre.service-public.fr",
+    # Plateformes sociales et professionnelles
+    "linkedin.com", "facebook.com", "instagram.com", "twitter.com", "x.com",
+    "pinterest.com", "youtube.com",
+    # Actualités et média
+    "actu.fr", "ouest-france.fr", "lefigaro.fr", "lemonde.fr", "wikipedia.org",
+    # Emplois
+    "indeed.com", "hellowork.com", "monster.fr", "pole-emploi.fr", "francetravail.fr", "emploipublic.fr",
+    # Organismes de BTP (non spécifiques à une seule entreprise)
+    "cibtp.fr", "capeb.fr", "ffbatiment.fr", "fntp.fr",
+    # Domaines génériques / Fallbacks de blocage ou d'exemples
+    "google.com", "yahoo.com", "bing.com", "baidu.com", "wellsfargo.com", "duckduckgo.com",
+    "wixpress.com", "wix.com", "wordpress.com", "github.com"
 ]
 
 def clean_company_name(name: str) -> str:
@@ -40,18 +55,66 @@ def clean_company_name(name: str) -> str:
 
 def find_company_website(company_name: str) -> str:
     """
-    Cherche le site web d'une entreprise via DuckDuckGo.
-    Exclut les annuaires d'entreprises connus et les sites d'actualités.
+    Cherche le site web d'une entreprise.
+    Tente d'abord via Firecrawl Search (Google + proxies résidentiels, robuste dans le cloud).
+    En cas d'échec ou d'absence de clé, repli sur DuckDuckGo (local uniquement, bloqué sur Railway).
+    Exclut les annuaires d'entreprises connus, les sites d'actualités et les réseaux sociaux.
     """
     if not company_name:
         return ""
         
+    cleaned_name = clean_company_name(company_name)
+    logger.info(f"Recherche site web pour '{company_name}' -> Nettoyé: '{cleaned_name}'")
+    
+    # Recherche flexible focusée BTP France
+    query = f"{cleaned_name} entreprise BTP site officiel"
+    
+    # 1. Tentative principale via Firecrawl Search
+    if config.FIRECRAWL_API_KEY:
+        try:
+            logger.info(f"Tentative Firecrawl Search pour: '{query}'")
+            headers = {
+                "Authorization": f"Bearer {config.FIRECRAWL_API_KEY}",
+                "Content-Type": "application/json"
+            }
+            payload = {
+                "query": query,
+                "limit": 5
+            }
+            
+            # Utilisation d'un client httpx temporaire pour appeler l'API de recherche Firecrawl
+            with httpx.Client() as client:
+                response = client.post(
+                    "https://api.firecrawl.dev/v1/search",
+                    json=payload,
+                    headers=headers,
+                    timeout=20
+                )
+                
+            if response.status_code == 200:
+                res_data = response.json()
+                if res_data.get("success") and res_data.get("data"):
+                    for item in res_data["data"]:
+                        url = item.get("url", "")
+                        if not url:
+                            continue
+                        
+                        domain = urlparse(url).netloc.lower()
+                        is_excluded = any(excl in domain for excl in EXCLUDED_DOMAINS)
+                        if not is_excluded:
+                            logger.info(f"Site officiel trouvé (Firecrawl) pour {cleaned_name} : {url}")
+                            return url
+                else:
+                    logger.warning(f"Firecrawl Search a renvoyé du JSON invalide ou success=False: {res_data}")
+            else:
+                logger.warning(f"Firecrawl Search a échoué avec le code statut {response.status_code}: {response.text}")
+                
+        except Exception as e:
+            logger.warning(f"Erreur lors de la recherche Firecrawl pour {cleaned_name}: {e}. Passage au repli DDG...")
+            
+    # 2. Repli secondaire via DuckDuckGo Search (DDG)
     try:
-        cleaned_name = clean_company_name(company_name)
-        logger.info(f"Recherche site web pour '{company_name}' -> Nettoyé: '{cleaned_name}'")
-        
-        # Recherche flexible focusée BTP France
-        query = f"{cleaned_name} entreprise BTP site officiel"
+        logger.info(f"Passage au repli DuckDuckGo pour: '{query}'")
         results = DDGS().text(query, region='fr-fr', max_results=10)
         
         for res in results:
@@ -60,14 +123,12 @@ def find_company_website(company_name: str) -> str:
                 continue
             
             domain = urlparse(url).netloc.lower()
-            
-            # Vérifier si c'est un domaine exclu
             is_excluded = any(excl in domain for excl in EXCLUDED_DOMAINS)
             if not is_excluded:
-                logger.info(f"Site officiel trouvé pour {cleaned_name} : {url}")
+                logger.info(f"Site officiel trouvé (DuckDuckGo) pour {cleaned_name} : {url}")
                 return url
                 
-        logger.debug(f"Aucun site pertinent trouvé pour {cleaned_name}")
+        logger.debug(f"Aucun site pertinent trouvé (DDG) pour {cleaned_name}")
         return ""
     except Exception as e:
         logger.warning(f"Erreur DuckDuckGo pour {company_name}: {e}")

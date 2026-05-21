@@ -12,6 +12,7 @@ Tu reçois en entrée un JSON contenant :
 - dirigeant : nom du dirigeant principal
 - commune / departement : localisation
 - activite_boamp : résumé de l'activité récente sur les marchés publics (BOAMP)
+- emails_extraits_du_site : liste d'adresses emails extraites de manière programmatique du site web par regex Python
 - site_markdown : contenu textuel brut du site internet de l'entreprise (via Firecrawl)
 
 ## RÈGLES DE RÉDACTION — STRICTES
@@ -49,7 +50,7 @@ Réponds UNIQUEMENT en JSON valide, sans texte avant ni après :
 
 ```json
 {
-  "email_contact": "Email le plus pertinent trouvé dans le site_markdown (ou vide si non trouvé)",
+  "email_contact": "Sélectionne l'adresse email professionnelle la plus pertinente dans la liste 'emails_extraits_du_site' (ex: contact@..., direction@..., ou l'adresse nominative du dirigeant). Si cette liste est vide ou incomplète, cherche un email valide dans 'site_markdown'. Laisse vide si aucun email n'est trouvé.",
   "analyse_friction": "Description en 2-3 phrases de la friction principale identifiée pour cette entreprise, basée sur son secteur NAF et son activité BOAMP.",
   "draft_email": "Objet: [objet concis]\n\n[Corps de l'email complet avec signature]"
 }

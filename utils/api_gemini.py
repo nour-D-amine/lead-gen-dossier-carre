@@ -6,6 +6,7 @@ Analyse les frictions, extrait l'email, et rédige les cold emails personnalisé
 
 import json
 import logging
+import re
 from google import genai
 from google.genai import types
 
@@ -24,7 +25,54 @@ def _load_system_prompt() -> str:
             _system_prompt_cache = f.read().strip()
     return _system_prompt_cache
 
+def extract_emails(text: str) -> list[str]:
+    """
+    Extrait toutes les adresses emails uniques du texte markdown
+    en filtrant les faux positifs évidents liés aux technologies web courantes.
+    """
+    if not text:
+        return []
+    
+    # Regex d'extraction d'email robuste et conforme
+    pattern = r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}'
+    emails = re.findall(pattern, text)
+    
+    cleaned_emails = []
+    # Domaines d'emails de services tiers à exclure pour éviter les faux positifs
+    excluded_email_domains = [
+        "sentry.io", "wix.com", "wixpress.com", "bootstrap.com", "example.com",
+        "domain.com", "yourdomain.com", "email.com", "test.com", "prestashop.com",
+        "wordpress.org", "wordpress.com", "schema.org", "github.com",
+        "png", "jpg", "jpeg", "gif", "svg"  # Évite les fausses adresses issues de chemins de fichiers
+    ]
+    
+    for email in emails:
+        email_lower = email.lower().strip()
+        # Enlever la ponctuation de fin fréquente
+        while email_lower and email_lower[-1] in ['.', ',', ';', ':', '!', '?']:
+            email_lower = email_lower[:-1]
+            
+        if not email_lower:
+            continue
+            
+        if "@" in email_lower:
+            parts = email_lower.split("@")
+            domain = parts[-1]
+            username = parts[0]
+            # S'assurer que le nom d'utilisateur ne se termine pas par des extensions d'images
+            if any(username.endswith(ext) for ext in ['.png', '.jpg', '.jpeg', '.gif', '.svg']):
+                continue
+                
+            if not any(excl in domain for excl in excluded_email_domains):
+                if email_lower not in cleaned_emails:
+                    cleaned_emails.append(email_lower)
+                    
+    return cleaned_emails
+
 def _build_user_message(lead: dict) -> str:
+    site_md = lead.get("site_markdown", "")
+    emails_extraits = extract_emails(site_md)
+    
     context = {
         "siren": lead.get("siren", ""),
         "nom": lead.get("nom", ""),
@@ -33,7 +81,8 @@ def _build_user_message(lead: dict) -> str:
         "commune": lead.get("commune", ""),
         "departement": lead.get("departement", ""),
         "activite_boamp": lead.get("activite_boamp", "Aucune activité détectée"),
-        "site_markdown": lead.get("site_markdown", ""),
+        "emails_extraits_du_site": emails_extraits,
+        "site_markdown": site_md,
     }
     return json.dumps(context, ensure_ascii=False, indent=2)
 
@@ -84,6 +133,12 @@ def analyze_and_draft(
             email = ""
             contact = ""
             logger.warning(f"Gemini: réponse non-JSON pour {lead.get('siren', '?')}")
+
+        # Repli de sécurité en Python : si aucun email n'a été retenu par le LLM mais qu'on en a extraits via regex
+        emails_extraits = extract_emails(lead.get("site_markdown", ""))
+        if not contact and emails_extraits:
+            contact = emails_extraits[0]
+            logger.info(f"Repli sécurité Python : Email {contact} extrait par regex associé au lead {lead.get('nom', '?')}.")
 
         logger.debug(f"Gemini: analyse terminée pour {lead.get('nom', '?')}")
         return analyse, email, contact
