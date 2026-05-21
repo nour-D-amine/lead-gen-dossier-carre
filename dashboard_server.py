@@ -143,5 +143,6 @@ def serve_static(path):
     return send_from_directory('dashboard', path)
 
 if __name__ == '__main__':
-    logger.info("Démarrage du serveur Dashboard sur http://localhost:8080")
-    app.run(host='0.0.0.0', port=8080, debug=True)
+    port = int(os.environ.get("PORT", 8080))
+    logger.info(f"Démarrage du serveur Dashboard sur le port {port}")
+    app.run(host='0.0.0.0', port=port, debug=True)
