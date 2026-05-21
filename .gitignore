@@ -1,0 +1,27 @@
+# Environment
+.env
+
+# Data
+data/
+checkpoint.json
+
+# Logs
+logs/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Node
+node_modules/
+.bin/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Google Credentials
+credentials.json

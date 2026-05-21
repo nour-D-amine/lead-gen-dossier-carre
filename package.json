@@ -1,0 +1,16 @@
+{
+  "name": "lead-dossier-carre",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "sync": "node notion_sync.js",
+    "worker": "node sender_worker.js"
+  },
+  "dependencies": {
+    "@notionhq/client": "^2.2.15",
+    "csv-parse": "^6.2.1",
+    "dotenv": "^17.4.2",
+    "nodemailer": "^8.0.7"
+  }
+}
