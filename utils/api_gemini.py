@@ -71,13 +71,15 @@ def extract_emails(text: str) -> list[str]:
 
 def _build_user_message(lead: dict) -> str:
     site_md = lead.get("site_markdown", "")
-    emails_extraits = extract_emails(site_md)
+    emails_extraits = lead.get("pre_extracted_emails")
     
-    # Fallback si aucun email trouvé dans le site web gratté
     if not emails_extraits:
-        from utils.web_search import search_company_email
-        logger.info(f"Aucun email trouvé via Firecrawl pour '{lead.get('nom', '?')}'. Lancement du fallback de recherche d'email...")
-        emails_extraits = search_company_email(lead.get("nom", ""))
+        emails_extraits = extract_emails(site_md)
+        # Fallback si aucun email trouvé dans le site web gratté
+        if not emails_extraits:
+            from utils.web_search import search_company_email
+            logger.info(f"Aucun email trouvé via Firecrawl pour '{lead.get('nom', '?')}'. Lancement du fallback de recherche d'email...")
+            emails_extraits = search_company_email(lead.get("nom", ""))
         
     context = {
         "siren": lead.get("siren", ""),

@@ -8,23 +8,40 @@ import config
 logger = logging.getLogger(__name__)
 
 EXCLUDED_DOMAINS = [
-    # Annuaires administratifs et d'entreprises
+    # Annuaires administratifs, juridiques et d'entreprises
     "pappers.fr", "societe.com", "pagesjaunes.fr", "annuaire-entreprises.data.gouv.fr",
     "kompass.com", "mappy.com", "verif.com", "infonet.fr", "rubypayeur.com",
     "societeinfo.com", "manageo.fr", "infogreffe.fr", "bodacc.fr", "societe.ninja",
     "lecese.fr", "service-public.fr", "economie.gouv.fr", "entreprendre.service-public.fr",
-    # Plateformes sociales et professionnelles
+    "entreprendre.service-public.gouv.fr", "guichet-unique.fr", "formalites.entreprises.gouv.fr",
+    "inpi.fr", "data.gouv.fr", "annuaire-entreprises.data.gouv.fr", "mon-entreprise.urssaf.fr",
+    "urssaf.fr", "infonet.fr", "societego.com", "laconstruction.fr", "le-repertoire.fr",
+    "cohesion-territoires.gouv.fr", "marches-publics.gouv.fr", "boamp.fr", "legifrance.gouv.fr",
+    "steinertriples.ch", "jorfsearch.steinertriples.ch", "verif-siret.fr", "sirene.fr",
+    "numtvagratuit.com", "nomatagratuit.com", "koalt.fr", "societeinfo.com",
+    # Plateformes sociales, de communication et professionnelles
     "linkedin.com", "facebook.com", "instagram.com", "twitter.com", "x.com",
-    "pinterest.com", "youtube.com",
-    # Actualités et média
-    "actu.fr", "ouest-france.fr", "lefigaro.fr", "lemonde.fr", "wikipedia.org",
-    # Emplois
+    "pinterest.com", "youtube.com", "vimeo.com", "tiktok.com", "medium.com",
+    # Actualités, média et presse
+    "actu.fr", "ouest-france.fr", "lefigaro.fr", "lemonde.fr", "wikipedia.org", "lesechos.fr",
+    "lesechos", "bfmtv.com", "usinenouvelle.com", "paperjam.lu", "pleinevie.fr",
+    "lavoixdunord.fr", "leparisien.fr", "liberation.fr", "la-croix.com", "mediapart.fr",
+    "capital.fr", "challenges.fr", "lexpress.fr", "lepoint.fr", "nouvelobs.com",
+    # Emplois et recrutement
     "indeed.com", "hellowork.com", "monster.fr", "pole-emploi.fr", "francetravail.fr", "emploipublic.fr",
-    # Organismes de BTP (non spécifiques à une seule entreprise)
-    "cibtp.fr", "capeb.fr", "ffbatiment.fr", "fntp.fr",
-    # Domaines génériques / Fallbacks de blocage ou d'exemples
-    "google.com", "yahoo.com", "bing.com", "baidu.com", "wellsfargo.com", "duckduckgo.com",
-    "wixpress.com", "wix.com", "wordpress.com", "github.com"
+    "glassdoor.fr", "cadremploi.fr", "apec.fr",
+    # Organismes de BTP, fédérations, caisses et annuaires sectoriels
+    "cibtp.fr", "capeb.fr", "ffbatiment.fr", "fntp.fr", "probtp.com", "preventionbtp.fr",
+    "ccca-btp.fr", "prevbtp.fr", "qualibat.com", "qualifelec.fr", "certibat.fr",
+    "federation-francaise-experts-batiments.fr", "batiweb.com", "batiactu.com",
+    "lemoniteur.fr", "travaux.com", "habitatpresto.com", "123travaux.com", "quotatis.fr",
+    # Domaines génériques, moteurs de recherche et technologies tiers
+    "google.com", "google.fr", "google.de", "translate.google", "yahoo.com", "bing.com", "baidu.com",
+    "wellsfargo.com", "duckduckgo.com", "wixpress.com", "wix.com", "wordpress.com", "wordpress.org",
+    "github.com", "mil.wf", "play.tetris.com", "sg.fr", "credit-agricole.fr", "banquepopulaire.fr",
+    "caisse-epargne.fr", "bnpparibas.fr", "societegenerale.fr", "cic.fr", "lcl.fr", "creditmutuel.fr",
+    "contract-factory.com", "legalstart.fr", "captaincontract.com", "vt.edu", "drhouse-immo.com",
+    "iadfrance.fr", "century21.fr", "orpi.com", "laforet.com", "foncia.com"
 ]
 
 def clean_company_name(name: str) -> str:

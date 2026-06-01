@@ -119,9 +119,13 @@ def fetch_page(
     except httpx.HTTPStatusError as e:
         if e.response.status_code == 429:
             limiter.on_rate_limit()
+            raise
+        elif e.response.status_code == 400:
+            logger.warning(f"Rejet 400 (Bad Request) pour NAF={naf_code}. Code NAF possiblement invalide ou refusé par l'API.")
+            return {"results": [], "total_results": 0, "total_pages": 0}
         else:
             limiter.on_error()
-        raise
+            raise
     except Exception as e:
         limiter.on_error()
         raise

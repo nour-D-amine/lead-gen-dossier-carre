@@ -249,31 +249,75 @@ def run_pipeline(args: argparse.Namespace) -> None:
                     except Exception as pool_err:
                         logger.error(f"Erreur d'enrichissement parallèle dans le pool : {pool_err}")
 
+        # Filtrer le batch après Couche 2 : on ne garde pour Couche 3 que ceux qui ont un site web valide ET un email
+        from urllib.parse import urlparse
+        from utils.web_search import EXCLUDED_DOMAINS
+        from utils.api_gemini import extract_emails
+        from utils.web_search import search_company_email
+
+        qualified_for_llm = []
+        for lead in batch:
+            site = lead.get("site_web", "").strip()
+            if not site:
+                logger.info(f"Lead {lead.get('nom')} ({lead.get('siren')}) écarté: Aucun site internet trouvé.")
+                continue
+            
+            domain = urlparse(site).netloc.lower()
+            if any(excl in domain for excl in EXCLUDED_DOMAINS):
+                logger.info(f"Lead {lead.get('nom')} ({lead.get('siren')}) écarté: Domaine exclu/invalide ({domain}).")
+                continue
+
+            if not args.dry_run:
+                # No Data = No Lead (avant Gemini)
+                emails = extract_emails(lead.get("site_markdown", ""))
+                if not emails:
+                    emails = search_company_email(lead.get("nom", ""))
+                if not emails:
+                    logger.info(f"Lead {lead.get('nom')} ({lead.get('siren')}) écarté: Aucun email trouvé (No Data = No Lead).")
+                    continue
+                lead["pre_extracted_emails"] = emails
+            
+            qualified_for_llm.append(lead)
+
         # ── COUCHE 3 : Intelligence (Gemini 2.5 Pro) ──────────────────
-        if not args.dry_run and llm_client:
-            logger.info(f"── Couche 3 : Gemini Pro analyse batch {batch_num} ──")
+        if qualified_for_llm:
+            if not args.dry_run and llm_client:
+                logger.info(f"── Couche 3 : Gemini Pro analyse batch {batch_num} ({len(qualified_for_llm)} qualifiés) ──")
 
-            # Batch LLM par lots de GEMINI_BATCH_SIZE
-            for cb_start in range(0, len(batch), config.GEMINI_BATCH_SIZE):
-                cb = batch[cb_start:cb_start + config.GEMINI_BATCH_SIZE]
-                results = analyze_batch(llm_client, rl_gemini, cb)
+                # Batch LLM par lots de GEMINI_BATCH_SIZE
+                for cb_start in range(0, len(qualified_for_llm), config.GEMINI_BATCH_SIZE):
+                    cb = qualified_for_llm[cb_start:cb_start + config.GEMINI_BATCH_SIZE]
+                    results = analyze_batch(llm_client, rl_gemini, cb)
 
-                for lead, (analyse, email_draft, contact_email) in zip(cb, results):
-                    lead["analyse_friction"] = analyse
-                    lead["draft_email"] = email_draft
-                    lead["email"] = contact_email
+                    for lead, (analyse, email_draft, contact_email) in zip(cb, results):
+                        lead["analyse_friction"] = analyse
+                        lead["draft_email"] = email_draft
+                        lead["email"] = contact_email
+                        lead["statut_traitement"] = "À optimiser"
+            else:
+                for lead in qualified_for_llm:
+                    lead["analyse_friction"] = "[DRY-RUN] Analyse non générée"
+                    lead["draft_email"] = "[DRY-RUN] Email non généré"
+                    lead["email"] = ""
                     lead["statut_traitement"] = "À optimiser"
-        else:
-            for lead in batch:
-                lead["analyse_friction"] = "[DRY-RUN] Analyse non générée"
-                lead["draft_email"] = "[DRY-RUN] Email non généré"
-                lead["email"] = ""
-                lead["statut_traitement"] = "À optimiser"
+
+        # Filtrer pour l'écriture finale : on n'enregistre que ceux qui ont un email (sauf en dry-run)
+        final_batch = []
+        for lead in qualified_for_llm:
+            email = lead.get("email", "").strip()
+            if not args.dry_run and not email:
+                logger.info(f"Lead {lead.get('nom')} ({lead.get('siren')}) écarté: Aucun email trouvé.")
+                continue
+            final_batch.append(lead)
 
         # ── Export CSV ────────────────────────────────────────
-        append_leads_to_csv(config.CSV_PATH, batch)
+        if final_batch:
+            append_leads_to_csv(config.CSV_PATH, final_batch)
+            logger.info(f"Exporté {len(final_batch)}/{len(batch)} leads qualifiés au CSV.")
+        else:
+            logger.info("Aucun lead qualifié dans ce batch à exporter au CSV.")
 
-        # Mise à jour checkpoint
+        # Mise à jour checkpoint (on marque TOUS les leads du batch initial comme traités pour ne pas tourner en boucle dessus)
         for lead in batch:
             processed_sirens.add(lead["siren"])
         checkpoint["processed_sirens"] = list(processed_sirens)
@@ -284,20 +328,22 @@ def run_pipeline(args: argparse.Namespace) -> None:
             f"{len(processed_sirens)} leads traités au total"
         )
 
-    # ── COUCHE 4 : Synchronisation Google Sheets ─────────────────
-    logger.info("━━━ COUCHE 4 : Synchronisation Google Sheets ━━━")
-    if not args.dry_run:
-        success = push_to_google_sheets(
-            config.GOOGLE_CREDENTIALS_PATH,
-            config.GOOGLE_SHEET_NAME,
-            config.CSV_PATH
-        )
-        if success:
-            logger.info("Synchronisation Google Sheets réussie.")
+        # ── COUCHE 4 : Synchronisation Google Sheets ─────────────────
+        if not args.dry_run:
+            logger.info("Synchronisation Google Sheets en cours...")
+            success = push_to_google_sheets(
+                config.GOOGLE_CREDENTIALS_PATH,
+                config.GOOGLE_SHEET_NAME,
+                config.CSV_PATH
+            )
+            if success:
+                logger.info("Synchronisation Google Sheets réussie.")
+            else:
+                logger.error("Échec de la synchronisation Google Sheets.")
         else:
-            logger.error("Échec de la synchronisation Google Sheets.")
-    else:
-        logger.info("[DRY-RUN] Synchronisation ignorée.")
+            logger.info("[DRY-RUN] Synchronisation ignorée.")
+
+    # ── Résumé final ─────────────────────────────────────────
 
     # ── Résumé final ─────────────────────────────────────────
     logger.info("=" * 60)

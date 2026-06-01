@@ -26,6 +26,7 @@
 
 ## Phase 3 : [A]rchitect — Architecture en 3 couches
 
+- [x] **Alerte de dérive traitée** : Ciblage NAF strictement restreint aux PME/Artisans de terrain : 41.20B, 43.99C, 43.91Z, 43.21A, 43.22A, 43.22B, 43.32A, 43.32B, 43.31Z, 43.34Z, 43.99A, 42.11Z, 42.21Z, 43.12A. Exclusion totale immobilier (68.*).
 - [ ] **Couche 1 — Data Ingestion** : Script de fetch Annuaire Entreprises avec filtres NAF + géo
 - [ ] **Couche 2 — Enrichissement** : Boucle Pappers (dirigeants) + Firecrawl (sites web) + BOAMP (activité marchés publics)
 - [ ] **Couche 3 — Intelligence** : Prompt Claude Sonnet 4.6 pour analyse de frictions + rédaction emails

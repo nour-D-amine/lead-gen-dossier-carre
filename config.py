@@ -45,20 +45,11 @@ DATA_DIR.mkdir(exist_ok=True)
 LOGS_DIR.mkdir(exist_ok=True)
 PROMPTS_DIR.mkdir(exist_ok=True)
 
-# ── Codes NAF BTP (41xx, 42xx, 43xx) ────────────────────────────
+# ── Codes NAF BTP (Ciblage strict Artisans & PME Travaux de terrain) ────────────
 NAF_CODES = [
-    # 41 — Promotion immobilière & Maisons Individuelles EXCLUS, on ne garde que le gros œuvre
-    "41.20B",
-    # 42 — Génie civil
-    "42.11Z", "42.12Z", "42.13A", "42.13B",
-    "42.21Z", "42.22Z", "42.91Z", "42.99Z",
-    # 43 — Travaux de construction spécialisés
-    "43.11Z", "43.12A", "43.12B", "43.13Z",
-    "43.21A", "43.22A", "43.22B", "43.29A",
-    "43.31Z", "43.32A", "43.32B", "43.33Z",
-    "43.34Z", "43.39Z",
-    "43.91A", "43.91B",
-    "43.99A", "43.99B", "43.99C", "43.99D", "43.99E",
+    "41.20B", "43.99C", "43.91A", "43.91B", "43.21A", "43.22A", "43.22B",
+    "43.32A", "43.32B", "43.31Z", "43.34Z", "43.99A", "42.11Z",
+    "42.21Z", "43.12A"
 ]
 
 # ── Régions ciblées (toute la France SAUF Grand Est = 44) ────────
@@ -90,6 +81,8 @@ CATEGORIES_EXCLUES = {"GE", "ETI"}
 EXCLUDED_KEYWORDS = [
     # Promotion, Immobilier & SCI
     "promotion", "promoteur", "immo", "immobilier", "immobiliere", "fonciere", "patrimoine", "lotissement", "amenageur", "sci",
+    # Institutionnels & Donneurs d'Ordres Publics (Alerte Majeure)
+    "metropole", "commune", "mairie", "departement", "region", "ministere", "communauté", "agglomeration", "office", "habitat", "public",
     # Architecture, Décoration & Diagnostic
     "architecte", "architecture", "decoration", "decorateur", "interieur", "cuisine", "diagnostic",
     # Commerce, Négoce, Matériaux, Outillage & Location B2B/B2C
