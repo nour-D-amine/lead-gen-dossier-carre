@@ -12,6 +12,7 @@ import os
 import logging
 import re
 import json
+import asyncio
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # LOGGING
@@ -146,7 +147,7 @@ def _extract_json(text: str) -> dict:
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 @app.get("/")
 async def health():
-    return {"status": "ok", "service": "Dossier Carré — Moteur d'Extraction BTP", "version": "1.0.3"}
+    return {"status": "ok", "service": "Dossier Carré — Moteur d'Extraction BTP", "version": "1.0.4"}
 
 
 @app.post("/analyser", response_model=ProspectResponse)
@@ -182,7 +183,7 @@ async def analyser_site(request: AnalyseRequest):
             source=request.url,
             config=graph_config,
         )
-        raw_result = scraper_extract.run()
+        raw_result = await asyncio.to_thread(scraper_extract.run)
         logger.info(f"Passe 1 terminée. Type: {type(raw_result)}")
 
         # Normaliser la réponse (peut être dict ou str)
@@ -222,7 +223,7 @@ async def analyser_site(request: AnalyseRequest):
             source=request.url,
             config=graph_config,
         )
-        raw_email = scraper_email.run()
+        raw_email = await asyncio.to_thread(scraper_email.run)
         logger.info(f"Passe 2 terminée. Type: {type(raw_email)}")
 
         if isinstance(raw_email, str):
