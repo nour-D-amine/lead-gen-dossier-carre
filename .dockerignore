@@ -1,0 +1,12 @@
+.git
+.venv
+node_modules
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.db
+.cache
+logs/
+data/leads_btp.csv
+data/checkpoint.json

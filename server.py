@@ -147,7 +147,7 @@ def _extract_json(text: str) -> dict:
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 @app.get("/")
 async def health():
-    return {"status": "ok", "service": "Dossier Carré — Moteur d'Extraction BTP", "version": "1.0.4"}
+    return {"status": "ok", "service": "Dossier Carré — Moteur d'Extraction BTP", "version": "1.0.5"}
 
 
 @app.post("/analyser", response_model=ProspectResponse)
