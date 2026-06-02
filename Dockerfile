@@ -16,4 +16,4 @@ COPY . .
 EXPOSE 8080
 
 # Commande de démarrage
-CMD ["uvicorn", "server:app", "--host", "0.0.0.0", "--port", "8080"]
+CMD uvicorn server:app --host 0.0.0.0 --port ${PORT:-8080}
