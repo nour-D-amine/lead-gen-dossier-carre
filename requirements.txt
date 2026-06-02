@@ -13,3 +13,4 @@ scrapegraphai>=1.10.0
 pydantic>=2.0.0
 streamlit>=1.35.0
 requests>=2.31.0
+langchain-google-genai
