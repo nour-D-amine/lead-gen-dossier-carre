@@ -171,6 +171,7 @@ async def analyser_site(request: AnalyseRequest):
             "llm": {
                 "api_key": gemini_key,
                 "model": "gemini-2.5-flash",
+                "model_provider": "google_genai",
             },
             "verbose": False,
         }
