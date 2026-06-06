@@ -25,8 +25,7 @@ echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━�
 if [ ! -f ".env" ]; then
     echo -e "${RED}[ERREUR] Fichier .env manquant.${NC}"
     echo "Créez un fichier .env avec vos clés API :"
-    echo "  FIRECRAWL_API_KEY=fc-xxx"
-    echo "  ANTHROPIC_API_KEY=sk-ant-xxx"
+    echo "  GEMINI_API_KEY=your-gemini-api-key"
     exit 1
 fi
 

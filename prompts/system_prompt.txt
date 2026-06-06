@@ -13,7 +13,7 @@ Tu reçois en entrée un JSON contenant :
 - commune / departement : localisation
 - activite_boamp : résumé de l'activité récente sur les marchés publics (BOAMP)
 - emails_extraits_du_site : liste d'adresses emails extraites de manière programmatique du site web par regex Python
-- site_markdown : contenu textuel brut du site internet de l'entreprise (via Firecrawl)
+- site_markdown : contenu textuel brut du site internet de l'entreprise (via ScrapegraphAI)
 
 ## RÈGLES DE RÉDACTION — STRICTES
 

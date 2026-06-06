@@ -11,7 +11,6 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # ── Clés API ─────────────────────────────────────────────────────
-FIRECRAWL_API_KEY = os.getenv("FIRECRAWL_API_KEY", "")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 
 # ── Chemins ──────────────────────────────────────────────────────
@@ -103,9 +102,9 @@ RATE_LIMITS = {
         "min_delay": 0.5,       # 500ms → 2 req/s (conservateur)
         "max_requests": None,   # Pas de quota
     },
-    "firecrawl": {
-        "min_delay": 2.0,       # 2s entre chaque requête
-        "max_requests": 1000,   # 1000 crédits/mois
+    "scrapegraph": {
+        "min_delay": 3.0,       # 3s entre chaque appel (ScrapegraphAI + Gemini)
+        "max_requests": None,   # Pas de quota propre, limité par Gemini free tier
     },
     "gemini": {
         "min_delay": 2.0,       # 2s entre chaque appel

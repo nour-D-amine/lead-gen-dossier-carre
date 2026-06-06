@@ -73,8 +73,7 @@ def clean_company_name(name: str) -> str:
 def find_company_website(company_name: str) -> str:
     """
     Cherche le site web d'une entreprise.
-    Tente d'abord via Firecrawl Search (Google + proxies résidentiels, robuste dans le cloud).
-    En cas d'échec ou d'absence de clé, repli sur DuckDuckGo (local uniquement, bloqué sur Railway).
+    Recherche le site web d'une entreprise via DuckDuckGo Search.
     Exclut les annuaires d'entreprises connus, les sites d'actualités et les réseaux sociaux.
     """
     if not company_name:
@@ -86,50 +85,7 @@ def find_company_website(company_name: str) -> str:
     # Recherche flexible focusée BTP France
     query = f"{cleaned_name} entreprise BTP site officiel"
     
-    # 1. Tentative principale via Firecrawl Search
-    if config.FIRECRAWL_API_KEY:
-        try:
-            logger.info(f"Tentative Firecrawl Search pour: '{query}'")
-            headers = {
-                "Authorization": f"Bearer {config.FIRECRAWL_API_KEY}",
-                "Content-Type": "application/json"
-            }
-            payload = {
-                "query": query,
-                "limit": 5
-            }
-            
-            # Utilisation d'un client httpx temporaire pour appeler l'API de recherche Firecrawl
-            with httpx.Client() as client:
-                response = client.post(
-                    "https://api.firecrawl.dev/v1/search",
-                    json=payload,
-                    headers=headers,
-                    timeout=20
-                )
-                
-            if response.status_code == 200:
-                res_data = response.json()
-                if res_data.get("success") and res_data.get("data"):
-                    for item in res_data["data"]:
-                        url = item.get("url", "")
-                        if not url:
-                            continue
-                        
-                        domain = urlparse(url).netloc.lower()
-                        is_excluded = any(excl in domain for excl in EXCLUDED_DOMAINS)
-                        if not is_excluded:
-                            logger.info(f"Site officiel trouvé (Firecrawl) pour {cleaned_name} : {url}")
-                            return url
-                else:
-                    logger.warning(f"Firecrawl Search a renvoyé du JSON invalide ou success=False: {res_data}")
-            else:
-                logger.warning(f"Firecrawl Search a échoué avec le code statut {response.status_code}: {response.text}")
-                
-        except Exception as e:
-            logger.warning(f"Erreur lors de la recherche Firecrawl pour {cleaned_name}: {e}. Passage au repli DDG...")
-            
-    # 2. Repli secondaire via DuckDuckGo Search (DDG)
+    # Recherche via DuckDuckGo Search
     try:
         logger.info(f"Passage au repli DuckDuckGo pour: '{query}'")
         results = DDGS().text(query, region='fr-fr', max_results=10)

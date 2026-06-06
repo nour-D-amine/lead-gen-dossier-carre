@@ -25,7 +25,7 @@ import config
 from utils.rate_limiter import RateLimiter
 from utils.api_annuaire import fetch_all_for_naf_region, parse_entreprise
 from utils.api_boamp import fetch_activite_boamp
-from utils.api_firecrawl import scrape_website_markdown
+from utils.api_scrapegraph import scrape_website_markdown
 from utils.api_gemini import analyze_batch
 from utils.web_search import find_company_website
 from utils.google_sheets_sync import push_to_google_sheets
@@ -118,7 +118,7 @@ def run_pipeline(args: argparse.Namespace) -> None:
     # Init rate limiters
     rl_annuaire = RateLimiter("Annuaire", **config.RATE_LIMITS["annuaire"])
     rl_boamp = RateLimiter("BOAMP", **config.RATE_LIMITS["boamp"])
-    rl_firecrawl = RateLimiter("Firecrawl", **config.RATE_LIMITS["firecrawl"])
+    rl_scrapegraph = RateLimiter("ScrapegraphAI", **config.RATE_LIMITS["scrapegraph"])
     rl_gemini = RateLimiter("Gemini", **config.RATE_LIMITS["gemini"])
 
     # Init checkpoint & CSV
@@ -194,7 +194,7 @@ def run_pipeline(args: argparse.Namespace) -> None:
         return
 
     # ── COUCHE 2 : Enrichissement ──────────────────────────────
-    logger.info("━━━ COUCHE 2 : Enrichissement (BOAMP + Firecrawl) ━━━")
+    logger.info("━━━ COUCHE 2 : Enrichissement (BOAMP + ScrapegraphAI) ━━━")
 
     if not args.dry_run and config.GEMINI_API_KEY:
         llm_client = genai.Client(api_key=config.GEMINI_API_KEY)
@@ -229,14 +229,14 @@ def run_pipeline(args: argparse.Namespace) -> None:
             lead_item["site_web"] = find_company_website(nom_val)
             lead_item["site_markdown"] = ""
 
-            if not args.dry_run and config.FIRECRAWL_API_KEY and lead_item.get("site_web"):
+            if not args.dry_run and config.GEMINI_API_KEY and lead_item.get("site_web"):
                 try:
                     lead_item["site_markdown"] = scrape_website_markdown(
-                        client_http, rl_firecrawl,
-                        config.FIRECRAWL_API_KEY, lead_item["site_web"],
+                        rl_scrapegraph,
+                        config.GEMINI_API_KEY, lead_item["site_web"],
                     )
                 except Exception as exc:
-                    logger.warning(f"Firecrawl échoué pour {nom_val}: {exc}")
+                    logger.warning(f"ScrapegraphAI échoué pour {nom_val}: {exc}")
 
         with httpx.Client() as http_client:
             from concurrent.futures import ThreadPoolExecutor
@@ -353,7 +353,7 @@ def run_pipeline(args: argparse.Namespace) -> None:
     logger.info(f"Rate limiters finaux:")
     logger.info(f"  {rl_annuaire}")
     logger.info(f"  {rl_boamp}")
-    logger.info(f"  {rl_firecrawl}")
+    logger.info(f"  {rl_scrapegraph}")
     logger.info(f"  {rl_gemini}")
     logger.info("=" * 60)
 
@@ -366,7 +366,7 @@ def main():
     )
     parser.add_argument(
         "--dry-run", action="store_true",
-        help="Exécuter sans appeler les APIs payantes (Firecrawl, Gemini)",
+        help="Exécuter sans appeler les APIs payantes (ScrapegraphAI, Gemini)",
     )
     parser.add_argument(
         "--batch-size", type=int, default=config.DEFAULT_BATCH_SIZE,

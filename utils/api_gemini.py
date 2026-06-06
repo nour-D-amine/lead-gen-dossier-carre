@@ -78,7 +78,7 @@ def _build_user_message(lead: dict) -> str:
         # Fallback si aucun email trouvé dans le site web gratté
         if not emails_extraits:
             from utils.web_search import search_company_email
-            logger.info(f"Aucun email trouvé via Firecrawl pour '{lead.get('nom', '?')}'. Lancement du fallback de recherche d'email...")
+            logger.info(f"Aucun email trouvé via ScrapegraphAI pour '{lead.get('nom', '?')}'. Lancement du fallback de recherche d'email...")
             emails_extraits = search_company_email(lead.get("nom", ""))
         
     context = {
